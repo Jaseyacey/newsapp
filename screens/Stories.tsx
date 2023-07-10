@@ -1,15 +1,17 @@
-/* eslint-disable react-native/no-inline-styles */
+/* eslint-disable react/no-unstable-nested-components */
 import * as React from 'react';
 import {
-  StyleSheet,
   View,
   Text,
-  StatusBar,
-  SafeAreaView,
+  StyleSheet,
   ActivityIndicator,
   FlatList,
+  Pressable,
 } from 'react-native';
 import {gql, useQuery} from 'urql';
+import {useNavigation} from '@react-navigation/core';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {RootStackParamList} from '../types';
 
 const STORIES_QUERY = gql`
   query AllStories {
@@ -22,56 +24,70 @@ const STORIES_QUERY = gql`
   }
 `;
 
-export const HomeScreen = () => {
+export const HomeScreen: React.FC = () => {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [{data, error, fetching}] = useQuery({query: STORIES_QUERY});
-  console.log(data);
-  console.log(error);
+
   if (fetching) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" />
-        <SafeAreaView>
-          <ActivityIndicator size="large" color="white" />
-        </SafeAreaView>
-      </View>
-    );
-  } else if (error) {
-    return (
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" />
-        <SafeAreaView>
-          <Text style={{color: 'red'}}>ERROR</Text>
-        </SafeAreaView>
-      </View>
-    );
-  } else {
-    return (
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" />
-        <SafeAreaView>
-          <FlatList
-            data={data.stories}
-            renderItem={({item}) => (
-              <>
-                <Text style={{color: 'white'}}>{item.title}</Text>
-                <View style={{padding: 10}} />
-                <Text style={{color: 'white'}}>{item.author}</Text>
-                <View style={{padding: 10}} />
-                <Text style={{color: 'white'}}>{item.summary}</Text>
-                <View style={{padding: 10}} />
-              </>
-            )}
-          />
-        </SafeAreaView>
+        <ActivityIndicator color="grey" />
       </View>
     );
   }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text>Something went wrong {error.message}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      contentContainerStyle={styles.flatListContainer}
+      style={styles.flatList}
+      data={data.stories}
+      keyExtractor={item => item.id}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      renderItem={({item}) => (
+        <Pressable onPress={() => navigation.navigate('StoryDetailsModal')}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.summary}>{item.summary}</Text>
+        </Pressable>
+      )}
+    />
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  flatList: {
+    paddingHorizontal: 20,
+  },
+  flatListContainer: {
+    paddingVertical: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '400',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 10,
+  },
+  summary: {
+    fontSize: 18,
+    color: 'grey',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: 'black',
+    marginVertical: 40,
   },
 });
